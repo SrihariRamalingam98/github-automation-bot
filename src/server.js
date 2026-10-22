@@ -13,8 +13,12 @@ const encryptionKey = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
 if (encryptionKey.length !== 32) throw new Error('ENCRYPTION_KEY must be 64 hex characters');
 const sessionSecret = process.env.SESSION_SECRET;
 if (sessionSecret.length < 32) throw new Error('SESSION_SECRET must have >=32 chars');
-const db = new pg.Pool({ connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : undefined });
+const db = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_SSL === 'true'
+    ? { rejectUnauthorized: true }
+    : undefined
+});
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);

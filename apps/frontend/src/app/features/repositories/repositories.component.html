@@ -1,0 +1,62 @@
+<header class="page-heading">
+    <div>
+        <p class="eyebrow">YOUR CODE, CONNECTED</p>
+        <h1>Repositories</h1>
+        <p>Connect repositories you own and administer to start receiving events.</p>
+    </div>
+    <button mat-stroked-button (click)="load()" [disabled]="loading() || busy()">Refresh</button>
+</header>
+<section class="panel" aria-labelledby="connect-repository-title">
+    <h2 id="connect-repository-title">Connect a repository</h2>
+    <p>We'll register a webhook and add a starter rule for new bug issues.</p>
+    <div class="inline-form">
+        <mat-form-field appearance="outline">
+            <mat-label>GitHub repository</mat-label>
+            <mat-select [formControl]="selected">
+                @for (repo of available(); track repo.id) {
+                    <mat-option [value]="repo.name">{{ repo.name }}</mat-option>
+                }
+            </mat-select>
+            <mat-hint>Owned repositories with administrator access</mat-hint>
+            <mat-error>Select a repository to connect.</mat-error>
+        </mat-form-field>
+        <button
+            mat-flat-button
+            (click)="connect()"
+            [disabled]="selected.invalid || busy() || loading()"
+        >
+            {{ busy() ? 'Working...' : 'Connect repository' }}
+        </button>
+    </div>
+    @if (!loading() && !error() && !available().length) {
+        <p class="small">No additional owned repositories are available to connect.</p>
+    }
+</section>
+<app-feedback
+    [loading]="loading()"
+    [error]="error()"
+    [empty]="!repos().length"
+    title="No repositories connected"
+    description="Select one above to start automating your workflow."
+/>
+<div class="repository-grid">
+    @for (repo of repos(); track repo.id) {
+        <mat-card class="repo-card">
+            <div class="panel-heading">
+                <span class="event-symbol" aria-hidden="true">R</span>
+                <app-status [value]="repo.hook_id ? 'active' : 'pending'" />
+            </div>
+            <h2>{{ repo.full_name }}</h2>
+            <p>{{ webhookDescription(repo) }}</p>
+            <p class="small">Connected {{ repo.created_at | date: 'mediumDate' }}</p>
+            <button
+                mat-stroked-button
+                [disabled]="busy()"
+                (click)="disconnect(repo)"
+                [attr.aria-label]="'Disconnect ' + repo.full_name"
+            >
+                Disconnect
+            </button>
+        </mat-card>
+    }
+</div>

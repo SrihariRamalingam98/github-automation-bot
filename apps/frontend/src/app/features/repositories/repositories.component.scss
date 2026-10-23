@@ -1,0 +1,45 @@
+:host {
+    display: block;
+}
+
+.inline-form {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    margin-top: var(--space-5);
+}
+.inline-form mat-form-field {
+    width: 100%;
+    max-width: 500px;
+}
+.inline-form > button {
+    margin-top: var(--space-2);
+}
+.repository-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(275px, 1fr));
+    gap: var(--space-5);
+}
+.repo-card {
+    padding: var(--space-6);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    box-shadow: none;
+}
+.repo-card h2 {
+    overflow-wrap: anywhere;
+    margin-top: var(--space-2);
+}
+.repo-card p {
+    font-size: 0.8rem;
+}
+.repo-card button {
+    align-self: flex-start;
+    margin-top: var(--space-3);
+}
+@media (max-width: 600px) {
+    .inline-form {
+        flex-direction: column;
+    }
+}

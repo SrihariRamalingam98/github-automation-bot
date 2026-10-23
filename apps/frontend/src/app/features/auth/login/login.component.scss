@@ -1,0 +1,86 @@
+:host {
+    display: block;
+}
+
+.login-page {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: 100vh;
+    background: var(--color-surface);
+}
+.login-panel {
+    max-width: 540px;
+    padding: 100px 60px;
+    margin: auto;
+}
+.login-panel .brand-mark {
+    margin-bottom: 35px;
+}
+.login-panel h1 {
+    font-size: 3.4rem;
+    line-height: 1.08;
+    margin: var(--space-5) 0;
+}
+.login-panel > a {
+    margin: var(--space-5) 0;
+}
+.login-panel .small {
+    max-width: 350px;
+    font-size: 0.72rem;
+}
+.login-art {
+    padding: 120px 12%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: radial-gradient(ellipse at 90% 10%, #5942ac, transparent), #211a40;
+    color: var(--color-surface);
+}
+.login-art .eyebrow {
+    color: #b3a7ed;
+}
+.login-art h2 {
+    font-size: 2.4rem;
+    letter-spacing: -0.04em;
+    line-height: 1.3;
+    margin: var(--space-4) 0 35px;
+}
+.workflow-node {
+    padding: 22px;
+    border: 1px solid #ffffff24;
+    background: #ffffff0a;
+    border-radius: 10px;
+    margin-bottom: var(--space-4);
+    font-size: 0.8rem;
+    counter-increment: workflow;
+}
+.login-art p {
+    color: #c0b7da;
+    font-size: 0.76rem;
+}
+@media (max-width: 600px) {
+    .login-page {
+        grid-template-columns: 1fr;
+    }
+    .login-panel {
+        padding: 50px 28px;
+    }
+    .login-panel h1 {
+        font-size: 2.8rem;
+    }
+    .login-art {
+        padding: 50px 28px;
+    }
+}
+
+.workflow-list {
+    padding-left: 0;
+    list-style: none;
+    counter-reset: workflow;
+}
+.workflow-node::before {
+    content: '0' counter(workflow);
+    color: #c0b7da;
+    margin-right: var(--space-4);
+    font-weight: 600;
+}

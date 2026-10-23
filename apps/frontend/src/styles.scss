@@ -1,0 +1,199 @@
+@use '@angular/material' as mat;
+@include mat.core();
+$theme: mat.define-theme(
+    (
+        color: (
+            theme-type: light,
+            primary: mat.$violet-palette,
+        ),
+        typography: (
+            brand-family: 'Inter, system-ui, sans-serif',
+            plain-family: 'Inter, system-ui, sans-serif',
+        ),
+        density: (
+            scale: -1,
+        ),
+    )
+);
+html {
+    @include mat.all-component-themes($theme);
+}
+:root {
+    --color-primary: #6551dc;
+    --color-primary-soft: #efecfc;
+    --color-text: #18233d;
+    --color-muted: #657086;
+    --color-subtle: #8590a3;
+    --color-border: #e6e9f1;
+    --color-canvas: #f7f8fc;
+    --color-surface: #ffffff;
+    --color-danger: #b03d50;
+    --color-success: #248464;
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-7: 32px;
+    --space-8: 40px;
+    --radius-card: 12px;
+    --radius-control: 8px;
+    --font-small: 0.8rem;
+
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        sans-serif;
+    color: var(--color-text);
+    background: var(--color-canvas);
+    font-synthesis: none;
+}
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+}
+a {
+    color: var(--color-primary);
+    -webkit-tap-highlight-color: transparent;
+}
+h1 {
+    margin-top: 0;
+    font-size: clamp(1.6rem, 2.3vw, 2.2rem);
+    letter-spacing: -0.045em;
+    line-height: 1.2;
+    font-weight: 650;
+    margin-bottom: var(--space-3);
+}
+h2 {
+    margin-top: 0;
+    font-size: 1.08rem;
+    font-weight: 650;
+    margin-bottom: var(--space-2);
+}
+p {
+    margin-top: 0;
+    color: var(--color-muted);
+    line-height: 1.65;
+}
+button {
+    -webkit-tap-highlight-color: transparent;
+}
+input {
+    -webkit-tap-highlight-color: transparent;
+}
+select {
+    -webkit-tap-highlight-color: transparent;
+}
+button:focus-visible {
+    outline: 3px solid #8d80f5;
+    outline-offset: 4px;
+}
+a:focus-visible {
+    outline: 3px solid #8d80f5;
+    outline-offset: 4px;
+}
+.eyebrow {
+    font-size: 0.65rem;
+    letter-spacing: 0.13em;
+    font-weight: 750;
+    color: #7664ce;
+    margin-bottom: var(--space-3);
+}
+.small {
+    font-size: 0.78rem;
+}
+.muted {
+    color: var(--color-muted);
+}
+.brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 40px;
+    background: var(--color-primary);
+    color: var(--color-surface);
+    border-radius: 11px;
+    font-size: 1.9rem;
+    font-weight: 750;
+}
+.page-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+    margin-bottom: 30px;
+}
+.page-heading p:last-child {
+    margin: 0;
+    font-size: 0.85rem;
+}
+.page-heading > button {
+    flex-shrink: 0;
+}
+.page-heading > a {
+    flex-shrink: 0;
+}
+.panel {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-card);
+    padding: var(--space-6);
+    margin-bottom: var(--space-6);
+    box-shadow: 0 3px 9px #23365803;
+}
+.panel > p {
+    font-size: 0.84rem;
+}
+.panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 14px;
+}
+.panel-heading p {
+    font-size: 0.8rem;
+    margin: 0;
+}
+.event-symbol {
+    color: #7965cc;
+    background: #f1edfc;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+.button-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+.error-banner {
+    padding: 14px 18px;
+    border: 1px solid #f2cbd2;
+    border-radius: 8px;
+    color: #a43c50;
+    background: #fff2f4;
+    font-size: 0.8rem;
+}
+@media (max-width: 600px) {
+    .page-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .panel {
+        padding: 18px;
+    }
+    .panel-heading {
+        flex-wrap: wrap;
+    }
+}

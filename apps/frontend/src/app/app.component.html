@@ -1,0 +1,21 @@
+<div
+    class="app-content"
+    [attr.inert]="loading.blocking() ? '' : null"
+    [attr.aria-busy]="loading.busy()"
+>
+    <router-outlet />
+</div>
+@if (loading.busy()) {
+    <mat-progress-bar class="top-loader" mode="indeterminate" aria-label="Loading, please wait" />
+}
+@if (loading.blocking()) {
+    <div
+        class="loading-overlay"
+        cdkTrapFocus
+        [cdkTrapFocusAutoCapture]="true"
+        role="status"
+        aria-live="polite"
+    >
+        <span class="loading-message" tabindex="0" cdkFocusInitial>Loading, please wait.</span>
+    </div>
+}

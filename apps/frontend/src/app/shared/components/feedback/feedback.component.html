@@ -1,0 +1,9 @@
+@if (loading()) {
+    <app-loading-spinner />
+}
+@if (error()) {
+    <p class="error-banner" role="alert">{{ error() }}</p>
+}
+@if (!loading() && !error() && empty()) {
+    <app-empty-state [title]="title()" [description]="description()" />
+}

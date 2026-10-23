@@ -1,0 +1,6 @@
+<span
+    class="status"
+    [class.success]="['done', 'ok', 'active'].includes(value())"
+    [class.failure]="['failed', 'error'].includes(value())"
+    >{{ value() }}</span
+>

@@ -1,0 +1,29 @@
+:host {
+    display: block;
+}
+
+.top-loader {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 10001;
+    pointer-events: none;
+}
+
+.loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    cursor: progress;
+    background: rgb(255 255 255 / 8%);
+    pointer-events: auto;
+}
+
+.loading-message {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

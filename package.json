@@ -1,17 +1,35 @@
 {
-  "name": "abstrabit-github-automation-bot",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test": "node --test"
-  },
-  "engines": {"node": ">=20"},
-  "dependencies": {
-    "express": "^4.21.2",
-    "pg": "^8.13.1",
-    "dotenv": "^16.4.5"
-  }
+    "name": "abstrabit-github-automation-bot",
+    "version": "2.0.0",
+    "private": true,
+    "workspaces": [
+        "apps/backend",
+        "apps/frontend"
+    ],
+    "scripts": {
+        "dev": "concurrently -k \"npm run dev -w apps/backend\" \"npm run dev -w apps/frontend\"",
+        "build": "npm run build -w apps/frontend && npm run build -w apps/backend && node scripts/verify-build.cjs",
+        "start": "node apps/backend/dist/main.js",
+        "lint": "eslint apps --max-warnings=0",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "test": "npm run test -w apps/backend && npm run test -w apps/frontend",
+        "test:integration": "npm run test:integration -w apps/backend",
+        "db:migrate": "npm run build -w apps/backend && npm run db:migrate -w apps/backend",
+        "db:migrations": "npm run build -w apps/backend && npm run db:migrations -w apps/backend",
+        "db:check-schema": "npm run build -w apps/backend && node scripts/check-database-schema.cjs",
+        "check:frontend-structure": "node scripts/verify-frontend-structure.cjs"
+    },
+    "engines": {
+        "node": ">=22.12.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.39.0",
+        "angular-eslint": "^20.3.0",
+        "concurrently": "^9.2.1",
+        "eslint": "^9.39.0",
+        "prettier": "^3.6.2",
+        "typescript": "~5.9.3",
+        "typescript-eslint": "^8.46.0"
+    }
 }

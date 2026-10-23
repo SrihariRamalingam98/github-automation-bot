@@ -1,0 +1,134 @@
+<header class="page-heading">
+    <div>
+        <p class="eyebrow">EVERY EVENT, ACCOUNTED FOR</p>
+        <h1>Event logs</h1>
+        <p>Follow deliveries, inspect actions, and understand failures.</p>
+    </div>
+    <button mat-stroked-button (click)="refresh()" [disabled]="loading()">Refresh</button>
+</header>
+<section class="panel" aria-label="Event history">
+    @if (repositoryError()) {
+        <p class="error-banner" role="alert">{{ repositoryError() }}</p>
+    }
+    <form [formGroup]="filters" class="filter-grid" aria-label="Event filters">
+        <mat-form-field appearance="outline">
+            <mat-label>Repository</mat-label>
+            <mat-select formControlName="repoId">
+                <mat-option value="">All repositories</mat-option>
+                @for (repo of repos(); track repo.id) {
+                    <mat-option [value]="repo.id">{{ repo.full_name }}</mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+            <mat-label>Event type</mat-label>
+            <mat-select formControlName="type">
+                <mat-option value="">All event types</mat-option>
+                <mat-option value="issues">Issues</mat-option>
+                <mat-option value="pull_request">Pull requests</mat-option>
+                <mat-option value="push">Pushes</mat-option>
+            </mat-select>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+                <mat-option value="">All statuses</mat-option>
+                @for (status of statuses; track status) {
+                    <mat-option [value]="status">{{ status }}</mat-option>
+                }
+            </mat-select>
+        </mat-form-field>
+    </form>
+    <app-feedback
+        [loading]="loading()"
+        [error]="error()"
+        [empty]="!events().length"
+        title="No matching events"
+        description="Try different filters or trigger a new GitHub event."
+    />
+    <div class="table-wrap">
+        <table mat-table [dataSource]="events()" aria-label="GitHub event history">
+            <ng-container matColumnDef="time">
+                <th mat-header-cell *matHeaderCellDef>Received</th>
+                <td mat-cell *matCellDef="let event">
+                    <time [attr.datetime]="event.received_at">{{
+                        event.received_at | date: 'MMM d, y, HH:mm:ss'
+                    }}</time>
+                    <div class="small muted" [title]="event.delivery_id">
+                        {{ event.delivery_id.slice(0, 8) }}
+                    </div>
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="repository">
+                <th mat-header-cell *matHeaderCellDef>Repository / Event</th>
+                <td mat-cell *matCellDef="let event">
+                    <strong>{{ event.full_name }}</strong>
+                    <div class="small muted">{{ eventLabel(event) }}</div>
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="status">
+                <th mat-header-cell *matHeaderCellDef>Status</th>
+                <td mat-cell *matCellDef="let event">
+                    <app-status [value]="event.status" />
+                    @if (event.status === 'pending' && event.attempts > 0) {
+                        <div class="small muted">Pending retry</div>
+                    }
+                    @if (event.processed_at) {
+                        <div class="small muted">
+                            Finished {{ event.processed_at | date: 'MMM d, HH:mm:ss' }}
+                        </div>
+                    }
+                    @if (event.error) {
+                        <p class="error-text">{{ event.error }}</p>
+                    }
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="retries">
+                <th mat-header-cell *matHeaderCellDef>Retries</th>
+                <td mat-cell *matCellDef="let event">
+                    {{ retryCount(event) }}
+                    <div class="small muted">{{ event.attempts }} attempts</div>
+                    @if (event.status === 'pending' && event.next_attempt_at) {
+                        <div class="small muted retry-time">
+                            Next attempt {{ event.next_attempt_at | date: 'MMM d, HH:mm:ss' }}
+                        </div>
+                    }
+                    @if (event.status === 'processing' && event.next_attempt_at) {
+                        <div class="small muted retry-time">
+                            Recovery eligible {{ event.next_attempt_at | date: 'MMM d, HH:mm:ss' }}
+                        </div>
+                    }
+                </td>
+            </ng-container>
+            <ng-container matColumnDef="actions">
+                <th mat-header-cell *matHeaderCellDef>Actions</th>
+                <td mat-cell *matCellDef="let event">
+                    @for (action of event.actions; track action.kind) {
+                        <details>
+                            <summary>{{ action.kind }} &middot; {{ action.status }}</summary>
+                            <p>{{ action.detail }}</p>
+                        </details>
+                    }
+                    @if (!event.actions.length) {
+                        <span class="muted">No actions</span>
+                    }
+                </td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="columns"></tr>
+            <tr mat-row *matRowDef="let row; columns: columns"></tr>
+        </table>
+    </div>
+    <div class="button-row pagination">
+        <button mat-button (click)="refresh()" [disabled]="!before() || loading()">
+            Newest events
+        </button>
+        <span class="small muted">Up to 100 events per page</span>
+        <button
+            mat-stroked-button
+            (click)="older()"
+            [disabled]="events().length < 100 || loading()"
+        >
+            Older events &rarr;
+        </button>
+    </div>
+</section>

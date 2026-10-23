@@ -1,0 +1,38 @@
+<main class="login-page">
+    <section class="login-panel" aria-labelledby="login-title">
+        <div class="brand-mark" aria-hidden="true">a</div>
+        <p class="eyebrow">ABSTRABIT AUTOMATION</p>
+        <h1 id="login-title">Less busywork.<br />More building.</h1>
+        <p>Connect GitHub, automate your workflow, and keep your team in the loop.</p>
+        @if (unavailable) {
+            <p class="error-banner" role="alert">
+                Unable to verify your session. The server may be unavailable.
+            </p>
+            <button mat-button (click)="retry()">Retry workspace</button>
+        }
+        @if (expired) {
+            <p class="error-banner" role="status">Your session expired. Sign in to continue.</p>
+        }
+        <a
+            mat-flat-button
+            href="/auth/github"
+            (click)="login($event)"
+            [attr.aria-disabled]="loading.blocking() ? 'true' : null"
+            >Continue with GitHub <span aria-hidden="true">&nearr;</span></a
+        >
+        <p class="small">
+            GitHub authorization lets us register webhooks and manage labels on repositories you
+            choose to connect.
+        </p>
+    </section>
+    <aside class="login-art" aria-label="Automation workflow">
+        <span class="eyebrow">YOUR WORKFLOW, CONNECTED</span>
+        <h2>From issue to action.<br />Automatically.</h2>
+        <ol class="workflow-list">
+            <li class="workflow-node">GitHub event received</li>
+            <li class="workflow-node">Your rules find a match</li>
+            <li class="workflow-node">Labels applied. Team notified.</li>
+        </ol>
+        <p>Built for a clearer view of every event.</p>
+    </aside>
+</main>

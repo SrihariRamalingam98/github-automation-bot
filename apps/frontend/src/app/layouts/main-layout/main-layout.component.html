@@ -1,0 +1,60 @@
+<a class="skip-link" href="#main-content">Skip to content</a>
+<mat-sidenav-container class="app-layout">
+    <mat-sidenav
+        class="sidebar"
+        [opened]="opened()"
+        (openedChange)="opened.set($event)"
+        [mode]="mobile() ? 'over' : 'side'"
+    >
+        <a class="brand" routerLink="/dashboard" aria-label="Abstrabit overview">
+            <span class="brand-mark" aria-hidden="true">a</span>
+            <span>abstrabit<span class="brand-sub">AUTOMATION</span></span>
+        </a>
+        <p class="nav-label">WORKSPACE</p>
+        <nav aria-label="Main navigation">
+            @for (item of links; track item.path) {
+                <a
+                    [routerLink]="item.path"
+                    routerLinkActive="active"
+                    ariaCurrentWhenActive="page"
+                    (click)="closeMobile()"
+                >
+                    <span aria-hidden="true">{{ item.icon }}</span
+                    >{{ item.name }}
+                </a>
+            }
+        </nav>
+        <div class="sidebar-footer">
+            <span class="connection-badge">GitHub connected</span>
+            <p>Make every event count.</p>
+        </div>
+    </mat-sidenav>
+    <mat-sidenav-content>
+        <mat-toolbar class="topbar">
+            <button
+                mat-button
+                aria-label="Toggle sidebar"
+                [attr.aria-expanded]="opened()"
+                (click)="opened.set(!opened())"
+            >
+                Menu
+            </button>
+            <span class="workspace-title">Your workspace</span>
+            <span class="toolbar-spacer"></span>
+            <span class="live-indicator" [class.offline]="!stream.connected()">{{
+                stream.connected() ? 'Live updates' : 'Reconnecting'
+            }}</span>
+            <span class="user-name">{{ auth.user()?.login }}</span>
+            <button mat-button (click)="logout()" [disabled]="loading.blocking()">Log out</button>
+        </mat-toolbar>
+        <main id="main-content" class="page">
+            @if (stream.error()) {
+                <p class="error-banner" role="status">{{ stream.error() }}</p>
+            }
+            <router-outlet />
+        </main>
+        <footer class="page-footer">
+            ABSTRABIT <span>GitHub automation, with visibility.</span>
+        </footer>
+    </mat-sidenav-content>
+</mat-sidenav-container>

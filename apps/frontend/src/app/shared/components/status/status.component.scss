@@ -1,0 +1,21 @@
+:host {
+    display: block;
+}
+
+.status {
+    display: inline-block;
+    border-radius: 5px;
+    padding: var(--space-1) 9px;
+    font-size: 0.65rem;
+    font-weight: 650;
+    background: #fff5df;
+    color: #976c22;
+}
+.status.success {
+    background: #e9f7f1;
+    color: #25795d;
+}
+.status.failure {
+    background: #fceced;
+    color: var(--color-danger);
+}

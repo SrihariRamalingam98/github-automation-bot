@@ -1,0 +1,77 @@
+:host {
+    display: block;
+}
+
+summary:focus-visible {
+    outline: 3px solid #8d80f5;
+    outline-offset: 4px;
+}
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+.table-wrap {
+    overflow-x: auto;
+}
+table {
+    width: 100%;
+    background: transparent;
+}
+th {
+    color: var(--color-subtle);
+    font-size: 0.68rem;
+    background: #f9faff;
+}
+td {
+    font-size: 0.76rem;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    vertical-align: top;
+    border-bottom-color: #eef0f5;
+}
+td strong {
+    font-weight: 550;
+}
+td .small {
+    margin-top: 6px;
+    font-size: 0.65rem;
+}
+.error-text {
+    font-size: 0.68rem;
+    color: var(--color-danger);
+    max-width: 230px;
+    margin: var(--space-2) 0 0;
+}
+.retry-time {
+    min-width: 145px;
+}
+.pagination {
+    justify-content: space-between;
+    margin-top: var(--space-5);
+}
+details {
+    margin-bottom: 6px;
+    max-width: 270px;
+}
+summary {
+    cursor: pointer;
+    color: #6856bc;
+}
+details p {
+    font-size: 0.7rem;
+    margin: 6px 0;
+    overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+    .filter-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+    }
+    .pagination {
+        flex-wrap: wrap;
+    }
+    .pagination > span {
+        display: none;
+    }
+}

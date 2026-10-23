@@ -1,0 +1,59 @@
+<header class="page-heading">
+    <div>
+        <p class="eyebrow">WORKSPACE OVERVIEW</p>
+        <h1>Your automation, at a glance.</h1>
+        <p>Keep track of your repositories and everything happening across them.</p>
+    </div>
+    <a mat-flat-button routerLink="/repositories">Connect repository</a>
+</header>
+<app-feedback [loading]="loading()" [error]="error()" />
+@if (!loading() && !error()) {
+    <section class="stat-grid" aria-label="Workspace statistics">
+        @for (card of cards(); track card.label) {
+            <mat-card class="stat-card">
+                <p>{{ card.label }}</p>
+                <strong>{{ card.value }}</strong>
+                <span>{{ card.hint }}</span>
+            </mat-card>
+        }
+    </section>
+}
+<section class="panel" aria-labelledby="recent-activity-title">
+    <div class="panel-heading">
+        <div>
+            <h2 id="recent-activity-title">Recent activity</h2>
+            <p>A live view of your latest GitHub events.</p>
+        </div>
+        <a mat-button routerLink="/events">View all events &rarr;</a>
+    </div>
+    @if (!loading() && !error()) {
+        <app-feedback
+            [empty]="!events().length"
+            title="Waiting for your first event"
+            description="Connect a repository, then open an issue or push a commit."
+        />
+        @for (event of events(); track event.id) {
+            <article class="activity-row">
+                <span class="event-symbol" aria-hidden="true">{{ eventMarker(event) }}</span>
+                <div class="activity-body">
+                    <strong>{{ event.full_name }}</strong>
+                    <p>
+                        {{ eventLabel(event) }}
+                        <span class="muted">&middot; {{ event.actions.length }} actions</span>
+                    </p>
+                </div>
+                <app-status [value]="event.status" />
+                <time [attr.datetime]="event.received_at">{{
+                    event.received_at | date: 'MMM d, HH:mm'
+                }}</time>
+            </article>
+        }
+    }
+</section>
+<aside class="hint-panel">
+    <strong>Start with a simple rule</strong>
+    <p>
+        Match &ldquo;bug&rdquo; in a new issue title to apply a label and notify your Slack channel.
+    </p>
+    <a mat-button routerLink="/rules">Manage automation &rarr;</a>
+</aside>

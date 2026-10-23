@@ -1,0 +1,124 @@
+<header class="page-heading">
+    <div>
+        <p class="eyebrow">WORK SMARTER</p>
+        <h1>Automation rules</h1>
+        <p>Turn matching GitHub events into useful actions for your team.</p>
+    </div>
+    <button mat-stroked-button (click)="load()" [disabled]="loading() || busy()">Refresh</button>
+</header>
+<section class="panel" aria-labelledby="rule-editor-title">
+    <h2 id="rule-editor-title">
+        {{ editing() ? 'Edit automation rule' : 'Create an automation rule' }}
+    </h2>
+    <p>
+        Keywords match issue and pull request titles, or the head commit message for pushes. Push
+        rules send Slack notifications only.
+    </p>
+    <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="form-grid">
+            <mat-form-field appearance="outline">
+                <mat-label>Repository</mat-label>
+                <mat-select formControlName="repoId">
+                    @for (repo of repos(); track repo.id) {
+                        <mat-option [value]="repo.id">{{ repo.full_name }}</mat-option>
+                    }
+                </mat-select>
+                <mat-error>Select a repository.</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+                <mat-label>Event type</mat-label>
+                <mat-select formControlName="eventType">
+                    <mat-option value="issues.opened">Issue opened</mat-option>
+                    <mat-option value="pull_request.opened">Pull request opened</mat-option>
+                    <mat-option value="push">Push</mat-option>
+                </mat-select>
+                <mat-error>Select an event type.</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+                <mat-label>Contains keyword</mat-label>
+                <input matInput formControlName="keyword" maxlength="80" placeholder="bug" />
+                <mat-error>Enter a nonblank keyword, up to 80 characters.</mat-error>
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+                <mat-label>GitHub label</mat-label>
+                <mat-select formControlName="label">
+                    @for (label of labels(); track label.name) {
+                        <mat-option [value]="label.name">{{ label.name }}</mat-option>
+                    }
+                    @if (!labels().length) {
+                        <mat-option value="bug">bug</mat-option>
+                    }
+                </mat-select>
+                <mat-hint>{{
+                    labelError() || 'Existing repository labels. Ignored for push events.'
+                }}</mat-hint>
+                <mat-error>Select a label.</mat-error>
+            </mat-form-field>
+        </div>
+        @if (labelError()) {
+            <p class="error-banner" role="alert">{{ labelError() }}</p>
+        }
+        <div class="rule-options">
+            <mat-checkbox formControlName="slackEnabled">Send a Slack notification</mat-checkbox>
+            <mat-checkbox formControlName="enabled">Rule enabled</mat-checkbox>
+        </div>
+        <div class="button-row">
+            <button mat-flat-button type="submit" [disabled]="form.invalid || busy()">
+                {{ editing() ? 'Save changes' : 'Create rule' }}
+            </button>
+            @if (editing()) {
+                <button mat-button type="button" [disabled]="busy()" (click)="reset()">
+                    Cancel editing
+                </button>
+            }
+        </div>
+    </form>
+</section>
+<app-feedback
+    [loading]="loading()"
+    [error]="error()"
+    [empty]="!rules().length"
+    title="Your workflow starts with a rule"
+    description="Connect a repository, then choose an event and keyword above."
+/>
+<section class="rule-list" aria-label="Automation rules">
+    @for (rule of rules(); track rule.id) {
+        <article class="panel rule-row">
+            <div class="rule-summary">
+                <span class="eyebrow"
+                    >{{ repoName(rule.repo_id) }} &middot; {{ rule.event_type }}</span
+                >
+                <h2>
+                    Contains &ldquo;{{ rule.keyword }}&rdquo; &rarr;
+                    {{ rule.event_type === 'push' ? 'Slack notification' : rule.label }}
+                </h2>
+                <p>
+                    {{ rule.slack_enabled ? 'Slack notifications on' : 'Slack notifications off' }}
+                </p>
+            </div>
+            <mat-slide-toggle
+                [checked]="rule.enabled"
+                [disabled]="busy()"
+                (change)="toggle(rule)"
+                [aria-label]="'Enable rule for ' + rule.keyword"
+                >{{ rule.enabled ? 'Enabled' : 'Disabled' }}</mat-slide-toggle
+            >
+            <button
+                mat-button
+                (click)="edit(rule)"
+                [disabled]="busy()"
+                [attr.aria-label]="'Edit rule matching ' + rule.keyword"
+            >
+                Edit
+            </button>
+            <button
+                mat-button
+                (click)="remove(rule)"
+                [disabled]="busy()"
+                [attr.aria-label]="'Delete rule matching ' + rule.keyword"
+            >
+                Delete
+            </button>
+        </article>
+    }
+</section>

@@ -1,0 +1,40 @@
+{
+    "name": "@bot/backend",
+    "private": true,
+    "scripts": {
+        "dev": "node ../../scripts/watch-backend.cjs",
+        "build": "node ../../scripts/clean-backend.cjs && tsc -p tsconfig.json",
+        "test": "jest --runInBand",
+        "test:integration": "jest --runInBand --testPathPattern=integration",
+        "db:migrate": "typeorm migration:run -d dist/database/data-source.js",
+        "db:migrations": "typeorm migration:show -d dist/database/data-source.js"
+    },
+    "dependencies": {
+        "@nestjs/common": "^11.1.0",
+        "@nestjs/core": "^11.1.0",
+        "@nestjs/platform-express": "^11.1.0",
+        "@nestjs/throttler": "^6.7.1",
+        "@nestjs/typeorm": "^11.0.0",
+        "class-transformer": "^0.5.1",
+        "class-validator": "^0.14.2",
+        "cookie-parser": "^1.4.7",
+        "dotenv": "^16.6.1",
+        "express": "^5.1.0",
+        "helmet": "^8.1.0",
+        "pg": "^8.16.3",
+        "reflect-metadata": "^0.2.2",
+        "rxjs": "^7.8.2",
+        "typeorm": "~0.3.28"
+    },
+    "devDependencies": {
+        "@nestjs/testing": "^11.1.0",
+        "@types/cookie-parser": "^1.4.9",
+        "@types/express": "^5.0.3",
+        "@types/jest": "^29.5.14",
+        "@types/node": "^22.18.0",
+        "@types/supertest": "^6.0.3",
+        "jest": "^29.7.0",
+        "supertest": "^7.1.4",
+        "ts-jest": "^29.4.4"
+    }
+}

@@ -5,6 +5,7 @@ import {
     externalRequest,
 } from '../common/exceptions/external-request';
 import { AppConfig } from '../config/config.module';
+import { UpstreamError } from '../common/exceptions/upstream.exception';
 
 export interface GithubRepo {
     id: number;
@@ -79,5 +80,26 @@ export class GithubService {
                 'GitHub OAuth authorization failed. Start sign-in again.',
             );
         return data.access_token;
+    }
+
+    async isCollaborator(
+        repositoryFullName: string,
+        username: string,
+        token: string,
+    ): Promise<boolean> {
+        try {
+            await this.request<void>(
+                'GET',
+                `/repos/${repoPath(repositoryFullName)}/collaborators/${encodeURIComponent(username)}`,
+                token,
+            );
+            return true;
+        } catch (error) {
+            if (error instanceof UpstreamError && error.status === 404) {
+                return false;
+            }
+
+            throw error;
+        }
     }
 }

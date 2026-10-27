@@ -22,6 +22,7 @@ describe('Durable processing and retry workflow', () => {
             attempts: 1,
             payload: {
                 issue: {
+                    user: { login: 'test' },
                     title: 'Bug in Login API',
                     number: 5,
                     html_url: 'https://example.test/5',

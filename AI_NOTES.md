@@ -63,3 +63,5 @@ An earlier dependency audit recorded **33 development/build findings and zero pr
 Possible future enhancements include a free-tier in-app AI triage feature and GitHub App authentication.
 
 No commit, deployment, production database modification, or live environment change is implied by this document.
+
+AI assistance corrected the collaborator check to use the issue/PR author (push sender), rather than the repository name. Owner events remain eligible; outsiders and missing authors produce skipped Slack actions. HTTP failures retain existing retry metadata, and completed/skipped actions remain idempotent.

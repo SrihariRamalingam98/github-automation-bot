@@ -91,10 +91,36 @@ export class EventProcessorService {
                             manager,
                             event.id,
                             `slack:${rule.id}`,
-                            () =>
-                                this.slack.send(
+                            async () => {
+                                const username = item
+                                    ? item.user?.login
+                                    : event.payload.sender?.login;
+                                if (
+                                    typeof username !== 'string' ||
+                                    !/^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$/.test(
+                                        username,
+                                    )
+                                )
+                                    return 'Skipped: Slack author missing or invalid';
+                                const owner =
+                                    event.repository.fullName.split('/')[0];
+                                if (
+                                    username.toLowerCase() !==
+                                        owner.toLowerCase() &&
+                                    !(await this.github.isCollaborator(
+                                        event.repository.fullName,
+                                        username,
+                                        this.token(
+                                            event.repository.owner
+                                                .tokenEncrypted,
+                                        ),
+                                    ))
+                                )
+                                    return 'Skipped: Slack author is not an owner or collaborator';
+                                return this.slack.send(
                                     `GitHub ${event.eventType} matched "${rule.keyword}" in ${event.repository.fullName}: ${item?.title || event.payload.head_commit?.message || ''} ${item?.html_url || ''}`,
-                                ),
+                                );
+                            },
                             context,
                         );
                     }

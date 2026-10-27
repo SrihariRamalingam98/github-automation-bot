@@ -2,28 +2,64 @@
 
 ## Tools and division of work
 
-I used ChatGPT and OpenAI Codex for requirement breakdown, implementation, debugging, security review and documentation. Exact model/version identifiers were not consistently recorded, so I cannot provide a reliable model history. The project instruction file is [AGENTS.md](AGENTS.md).
+I used ChatGPT and OpenAI Codex to assist with requirement breakdown, implementation, debugging, security review, testing support, and documentation. Exact model/version identifiers were not consistently recorded, so I cannot provide a reliable model history. Project-level AI instructions are documented in [AGENTS.md](AGENTS.md).
 
-I directed the Angular/NestJS migration, requested PostgreSQL-backed retries and security checks, and tested integrations interactively. AI helped implement modules, TypeORM mappings, Angular views, tests and verification scripts. I used logs, GitHub delivery responses and test output to evaluate generated work. AI assistance extended to this submission documentation.
+I directed the Angular/NestJS migration, requested PostgreSQL-backed retry handling and security checks, and tested integrations interactively. AI assisted with implementing modules, TypeORM mappings, Angular views, tests, and verification scripts.
+
+I reviewed generated changes using application logs, GitHub webhook delivery responses, test results, and manual integration testing before accepting or modifying them. AI assistance was also used when preparing this submission documentation.
 
 ## Decisions I directed
 
-- **Angular and NestJS migration:** use standalone Angular features and NestJS domain modules to separate UI, API integration and backend processing responsibilities.
-- **Durable PostgreSQL processing:** preserve events and action outcomes across restarts, deduplicate delivery IDs and skip completed actions during normal retries instead of relying on an in-memory queue.
-- **Backend event grouping:** move issue/PR grouping from Angular to the backend and paginate groups there, while preserving individual deliveries and their action history in storage.
+- **Angular and NestJS migration:** Use standalone Angular features and NestJS domain modules to separate UI, API integration, and backend processing responsibilities.
+- **Durable PostgreSQL processing:** Persist events and action outcomes across application restarts, deduplicate GitHub delivery IDs, and skip already completed actions during retries instead of relying only on an in-memory queue.
+- **Backend event grouping:** Move issue and pull-request event grouping from Angular to the backend and perform pagination there, while retaining individual webhook deliveries and their action history in storage.
 
 ## A specific AI wrong turn and correction
 
-The AI-assisted first approach grouped only deliveries already loaded by the frontend. Grouping therefore depended on which deliveries were in the fetched page: deliveries for the same issue outside that page could not be represented together. I questioned whether grouping belonged in the frontend or backend and explicitly requested backend handling with pagination and error handling.
+The initial AI-assisted implementation grouped only the deliveries already loaded by the frontend. As a result, grouping depended on the currently fetched page. Deliveries belonging to the same issue or pull request but located on another page could not be represented in the same group.
 
-The correction introduced a NestJS event-history service that selects groups before pagination and exposes separately paginated delivery history. Angular now displays server results. Existing grouping cases moved to backend tests, and frontend fixtures were adjusted. An important gap remains: the new PostgreSQL grouping/window queries were inspected through offline TypeORM SQL generation but have not been executed against a verified isolated database. Passing mocked tests does not close that gap.
+I identified this limitation and questioned whether grouping should instead be handled by the backend. I then explicitly requested backend-side grouping with pagination and error handling.
+
+The corrected implementation introduced a NestJS event-history service that determines event groups before applying pagination and exposes separately paginated delivery history. Angular now renders the server-provided results.
+
+Existing grouping scenarios were moved into backend tests, and frontend fixtures were updated accordingly.
+
+One verification gap remains: the new PostgreSQL grouping/window queries were inspected using offline TypeORM SQL generation but have not yet been executed against a verified isolated PostgreSQL database. Passing mocked tests does not remove this gap.
 
 ## Reliability and verification evidence
 
-A challenging integration case was GitHub labeling succeeding while Slack failed. Durable action status, exponential backoff and skipping completed actions allow the failed notification to retry without intentionally repeating completed work. A temporary development simulation exercised Slack HTTP 503 followed by 200; its runtime routes and UI were subsequently removed. Slack Incoming Webhooks cannot guarantee exactly-once delivery after an ambiguous timeout or crash.
+One challenging integration scenario involved GitHub labeling succeeding while the Slack notification failed.
 
-Previously recorded verification: **180 backend and 32 Angular tests passed**, with four PostgreSQL tests skipped in that general run. Four PostgreSQL tests passed in an earlier dedicated run; that result does not verify later pagination queries. Builds, lint and local production HTTP checks passed in the recorded feature run. Focused feature formatting passed; repository-wide formatting warnings were recorded separately. These are historical results, not fresh checks performed while preparing this document. See [README.md](README.md#testing) for commands and scope.
+Durable action status, exponential backoff, and skipping completed actions allow the failed Slack action to retry without intentionally repeating the successfully completed GitHub action.
+
+A temporary development simulation was used to test a Slack HTTP `503` response followed by a successful `200` response. The temporary runtime test routes and UI were removed afterward.
+
+Slack Incoming Webhooks cannot provide a strict exactly-once delivery guarantee when failures involve ambiguous network timeouts or process crashes.
+
+Previously recorded verification results include:
+
+- **180 backend tests passed**
+- **32 Angular tests passed**
+- Four PostgreSQL tests were skipped during the general test run.
+- Four PostgreSQL tests passed during an earlier dedicated database run; however, that run does not verify the newer pagination/grouping queries.
+- Application builds and lint checks passed during the recorded feature verification.
+- Local production HTTP checks also passed.
+- Focused feature formatting passed, while separate repository-wide formatting warnings were recorded.
+
+These are historical verification results and were not rerun specifically while preparing this document. See [README.md](README.md#testing) for the relevant commands and testing scope.
 
 ## What I would improve
 
-Run the new queries against an explicitly verified isolated PostgreSQL target, finish live acceptance of the deployed version, resolve development/build dependency advisories and improve shared rate limiting and production monitoring. The earlier audit recorded 33 development/build findings and zero production advisories; this is not a current audit. Optional future work includes a free-tier in-app AI triage step and GitHub App authentication. No commit, deployment or live database change is implied by this document.
+The next priorities would be:
+
+- Execute the new grouping and pagination queries against an explicitly verified isolated PostgreSQL environment.
+- Complete live acceptance testing of the deployed version.
+- Resolve remaining development/build dependency advisories.
+- Improve shared rate limiting.
+- Add stronger production monitoring and observability.
+
+An earlier dependency audit recorded **33 development/build findings and zero production advisories**, but this should not be treated as a current audit result.
+
+Possible future enhancements include a free-tier in-app AI triage feature and GitHub App authentication.
+
+No commit, deployment, production database modification, or live environment change is implied by this document.

@@ -262,3 +262,5 @@ Configure `WORKER_ENABLED` deliberately and ensure two application versions do n
 - [`.env.example`](.env.example) — configuration template without real credentials.
 
 This repository includes the application's source, tests, configuration and CI workflow. Features or checks that have not been exercised in the live deployed version should remain explicitly marked pending until verified.
+
+Slack notifications require both a matching Slack-enabled rule and an issue/PR author who is the repository owner or a current collaborator. Push notifications check the webhook sender. Unknown authors and non-collaborators are skipped with a visible action reason; GitHub labels and event recording are unchanged. Collaborator API failures follow the existing retry policy.

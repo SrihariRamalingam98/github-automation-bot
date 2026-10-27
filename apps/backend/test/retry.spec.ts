@@ -39,6 +39,7 @@ function setup(maxAttempts = 5) {
         processedAt: null,
         payload: {
             issue: {
+                user: { login: 'test' },
                 title: 'Bug',
                 number: 5,
                 html_url: 'https://example.test/5',
@@ -121,6 +122,46 @@ describe('Retry workflow with real adapters and mocked HTTP/persistence', () => 
     afterEach(() => {
         jest.restoreAllMocks();
         jest.useRealTimers();
+    });
+
+    it.each([204, 404, 503])(
+        'checks collaborator access before Slack (%s)',
+        async (status) => {
+            const fixture = setup();
+            fixture.event.payload.issue!.user = { login: 'contributor' };
+            const fetch = jest
+                .spyOn(globalThis, 'fetch')
+                .mockResolvedValueOnce(new Response('[]'))
+                .mockResolvedValueOnce(new Response(null, { status }))
+                .mockResolvedValue(new Response('ok'));
+            await fixture.process();
+            expect(String(fetch.mock.calls[1][0])).toContain(
+                '/repos/test/repo/collaborators/contributor',
+            );
+            expect(
+                fetch.mock.calls.filter(([url]) =>
+                    String(url).startsWith('https://hooks.slack.com/'),
+                ),
+            ).toHaveLength(status === 204 ? 1 : 0);
+            expect(fixture.event.status).toBe(
+                status === 503 ? 'pending' : 'done',
+            );
+            expect(fixture.records.get('slack:3')?.status).toBe(
+                status === 204 ? 'ok' : status === 404 ? 'skipped' : 'failed',
+            );
+        },
+    );
+    it('fails closed when author is missing even if sender is the owner', async () => {
+        const fixture = setup();
+        delete fixture.event.payload.issue!.user;
+        fixture.event.payload.sender = { login: 'test' };
+        const fetch = jest
+            .spyOn(globalThis, 'fetch')
+            .mockResolvedValue(new Response('[]'));
+        await fixture.process();
+        expect(fetch).toHaveBeenCalledTimes(1);
+        expect(fixture.records.get('slack:3')?.status).toBe('skipped');
+        expect(fixture.event.status).toBe('done');
     });
     it.each([undefined, '2', '10'])(
         'validates retry configuration %s',

@@ -119,6 +119,7 @@ jest.setTimeout(60000);
             const payload = {
                 action: 'opened',
                 issue: {
+                    user: { login: 'test' },
                     number: 5,
                     title: 'Bug',
                     html_url: 'https://example.test/5',

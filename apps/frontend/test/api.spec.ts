@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { EventLogsService } from '../src/app/features/event-logs/event-logs.service';
+import { eventPage } from './event-fixtures';
 describe('Typed event API', () => {
     afterEach(() => {
         TestBed.inject(HttpTestingController).verify();
@@ -19,6 +20,6 @@ describe('Typed event API', () => {
         expect(req.request.params.get('repoId')).toBe('12');
         expect(req.request.params.has('type')).toBe(false);
         expect(req.request.params.get('before')).toBe('100');
-        req.flush([]);
+        req.flush(eventPage([]));
     });
 });

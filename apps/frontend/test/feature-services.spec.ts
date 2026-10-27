@@ -1,3 +1,4 @@
+import { eventPage, historyRow } from './event-fixtures';
 import { afterEach, describe, expect, it } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
@@ -45,8 +46,10 @@ describe('Dedicated feature HTTP services', () => {
             successful_actions: 2,
             failures: 0,
         });
-        http.expectOne('/api/events').flush(
-            Array.from({ length: 10 }, (_, index) => ({ id: String(index) })),
+        const request = http.expectOne((req) => req.url === '/api/events');
+        expect(request.request.params.get('limit')).toBe('8');
+        request.flush(
+            eventPage(Array.from({ length: 8 }, (_, index) => historyRow({ id: String(index) }))),
         );
         expect(count).toBe(8);
     });
@@ -70,5 +73,51 @@ describe('Dedicated feature HTTP services', () => {
         const update = http.expectOne('/api/rules/1');
         expect(update.request.method).toBe('PUT');
         update.flush({ id: '1' });
+    });
+    it('groups dashboard issue deliveries before limiting recent activity and keeps delivery totals unchanged', () => {
+        const http = setup();
+        let rows = 0;
+        let deliveries = 0;
+        let status = '';
+        let total = 0;
+        TestBed.inject(DashboardService)
+            .snapshot()
+            .subscribe((data) => {
+                rows = data.events.length;
+                deliveries = data.events[0].deliveries.length;
+                status = data.events[0].status;
+                total = data.overview.events;
+            });
+        http.expectOne('/api/overview').flush({
+            repositories: 1,
+            events: 2,
+            successful_actions: 1,
+            failures: 0,
+        });
+        const opened = historyRow({
+            id: '1',
+            repo_id: '9',
+            event_type: 'issues',
+            action: 'opened',
+            subject_number: 5,
+            status: 'pending',
+            actions: [{ kind: 'label:3', status: 'ok', detail: null }],
+        });
+        const labeled = historyRow({
+            id: '2',
+            repo_id: '9',
+            event_type: 'issues',
+            action: 'labeled',
+            subject_number: 5,
+            status: 'done',
+            actions: [],
+        });
+        http.expectOne((request) => request.url === '/api/events').flush(
+            eventPage([historyRow(opened, [labeled, opened])]),
+        );
+        expect(rows).toBe(1);
+        expect(deliveries).toBe(2);
+        expect(status).toBe('pending');
+        expect(total).toBe(2);
     });
 });

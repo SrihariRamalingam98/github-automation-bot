@@ -1,12 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { forkJoin, map, Observable } from 'rxjs';
-import { BotEvent, Overview } from '../../core/models/api.models';
+import { Overview } from '../../core/models/api.models';
+import { EventHistoryRow } from '../../core/models/event-history';
 import { EventLogsService } from '../event-logs/event-logs.service';
 
 export interface DashboardSnapshot {
     overview: Overview;
-    events: BotEvent[];
+    events: EventHistoryRow[];
 }
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -19,8 +20,14 @@ export class DashboardService {
     }
 
     snapshot(): Observable<DashboardSnapshot> {
-        return forkJoin({ overview: this.statistics(), events: this.events.list() }).pipe(
-            map((data) => ({ overview: data.overview, events: data.events.slice(0, 8) })),
+        return forkJoin({
+            overview: this.statistics(),
+            events: this.events.list({ limit: 8 }),
+        }).pipe(
+            map((data) => ({
+                overview: data.overview,
+                events: data.events.items,
+            })),
         );
     }
 }

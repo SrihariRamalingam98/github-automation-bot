@@ -7,6 +7,7 @@ import { EventEntity } from './entities/event.entity';
 import { EventStreamService } from './event-stream.service';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
+import { EventHistoryService } from './event-history.service';
 
 @Module({
     imports: [
@@ -14,7 +15,7 @@ import { EventsService } from './events.service';
         ActionsModule,
         TypeOrmModule.forFeature([EventEntity, RepositoryEntity]),
     ],
-    providers: [EventsService, EventStreamService],
+    providers: [EventsService, EventStreamService, EventHistoryService],
     controllers: [EventsController],
     exports: [EventsService],
 })

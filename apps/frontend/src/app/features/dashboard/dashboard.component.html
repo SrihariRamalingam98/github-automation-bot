@@ -32,14 +32,32 @@
             title="Waiting for your first event"
             description="Connect a repository, then open an issue or push a commit."
         />
-        @for (event of events(); track event.id) {
+        @for (event of events(); track event.key) {
             <article class="activity-row">
                 <span class="event-symbol" aria-hidden="true">{{ eventMarker(event) }}</span>
                 <div class="activity-body">
-                    <strong>{{ event.full_name }}</strong>
+                    @if (event.subject_url) {
+                        <a
+                            class="subject-link"
+                            [href]="event.subject_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >{{ event.full_name }} #{{ event.subject_number }} ·
+                            {{ event.subject_title || 'Open on GitHub' }} ↗</a
+                        >
+                    } @else if (event.repository_url) {
+                        <a [href]="event.repository_url" target="_blank" rel="noopener noreferrer"
+                            >{{ event.full_name }} ↗</a
+                        >
+                    } @else {
+                        <strong>{{ event.full_name }}</strong>
+                    }
                     <p>
-                        {{ eventLabel(event) }}
-                        <span class="muted">&middot; {{ event.actions.length }} actions</span>
+                        {{ event.activity_label }}
+                        <span class="muted"
+                            >&middot; {{ event.action_count }} actions ·
+                            {{ event.delivery_count }} deliveries</span
+                        >
                     </p>
                 </div>
                 <app-status [value]="event.status" />

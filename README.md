@@ -2,6 +2,25 @@
 
 An event-driven automation application built with **Angular, NestJS, TypeScript, PostgreSQL and TypeORM**. Sign in with GitHub, connect a repository, configure rules, automate GitHub actions, send Slack alerts and inspect event processing through a protected dashboard.
 
+## Reviewer quick start
+
+- **Live URL:** [Open the app](https://github-automation-bot-icif.onrender.com/)
+- **GitHub repo:** [Source code](https://github.com/SrihariRamalingam98/github-automation-bot)
+
+**Required setup:** a GitHub account, a disposable repository you own with a `bug` label, and access to the configured Slack channel. No shared login is needed. The hosted service needs working OAuth, webhooks, Slack and an enabled worker; for local setup, follow [Local setup](#local-setup) and [GitHub and Slack configuration](#github-and-slack-configuration).
+
+### Test in five steps
+
+1. Sign in with GitHub and connect your repository under **Repositories**.
+2. Create an enabled **Issue opened** rule: keyword `bug`, label `bug`, Slack notification on.
+3. Create an issue titled `Bug: assessment demo`. Check the GitHub label, Slack channel and **Event Logs**.
+4. Create a **Pull request opened** rule with keyword `bug`, label `bug` and Slack on; open a new PR titled `Bug: PR demo` and check the same results.
+5. In GitHub **Settings > Webhooks > Recent Deliveries**, redeliver the original issue-opened delivery. Check that its delivery ID is not stored twice and no extra Slack action occurs.
+
+**Expected result:** each matching issue/PR receives the label and a Slack message, with completed actions in Event Logs. Processing is asynchronous. Opened/labeled deliveries appear in one grouped row; expand history to inspect individual deliveries. Redelivery returns HTTP 202 without repeating completed actions.
+
+**Known limitations:** latest changes still need live end-to-end acceptance, and the new pagination SQL needs isolated PostgreSQL verification. Slack delivery cannot be guaranteed exactly once after ambiguous timeouts. In-app AI and GitHub App authentication are not implemented (optional stretch goals). See [Security and reliability notes](#security-and-reliability-notes) for details. This demo creates real GitHub, Slack and database activity; use disposable resources.
+
 ## Features
 
 - **GitHub OAuth:** authenticated sign-in with secure server-side sessions.
@@ -147,23 +166,7 @@ Event Logs displays action results and final status
 
 Push events can trigger notifications; labeling applies only to supported issue/PR events. Rule behavior depends on the configuration saved in the dashboard.
 
-## Reviewer demo
-
-Source: [GitHub repository](https://github.com/SrihariRamalingam98/github-automation-bot). Deployment: [Render application](https://github-automation-bot-icif.onrender.com/). The latest working-tree changes have not been verified end-to-end on this deployment; its URL does not establish that the deployed version matches this source.
-
-Use your own GitHub account and a disposable repository you own. No shared login credentials are required. Local reviewers must complete the setup above with their own development database, OAuth application and Slack Incoming Webhook. For hosted review, the operator must configure integrations and enable the worker; reviewers need access to the configured Slack channel to verify messages.
-
-1. Sign in and connect your disposable repository under **Repositories**. Ensure it has a `bug` label.
-2. In **Rules**, select the repository, **Issue opened**, keyword `bug`, label `bug`, and enable the rule and Slack notification. Use one matching rule for this walkthrough.
-3. Create a GitHub issue titled `Bug: assessment demo`. Expect the label, a Slack message and completed label/Slack actions in **Event Logs**. Processing is asynchronous; inspect attempts and errors if it remains pending or fails.
-4. Expand webhook history. GitHub can send separate `opened` and `labeled` deliveries, grouped into one issue row. Overview counts individual deliveries. Follow the issue link to open GitHub.
-5. Create a second rule for **Pull request opened**, keyword `assessment`, an existing label and Slack enabled. Open a new PR titled `Assessment demo` from a disposable branch. Expect the recorded PR delivery, label and Slack message. Closing an existing PR does not match this opened-only rule.
-6. In GitHub repository settings, select **Webhooks > Recent Deliveries** and redeliver the original issue-opened delivery. Expect HTTP 202 without another stored copy of that delivery or another label/Slack action for it. Compare delivery IDs in expanded history, not only grouped row counts.
-7. Sign out and confirm the dashboard requires authentication. Never share cookies, tokens or webhook secrets in review evidence.
-
-This walkthrough creates real GitHub, Slack and database activity. Use a disposable repository/channel and retain history for review. Retry recovery has mocked automated coverage; temporary failure-simulation routes/UI are not part of the submitted application. In-app LLM processing and GitHub App authentication are optional stretch goals and are not implemented.
-
-### Server-side event pagination
+## Server-side event pagination
 
 `GET /api/events` returns `{ items, next_cursor, has_more, snapshot, page_size }`. Pass `limit` (1–50, default 10), optional `repoId`, `type` and `status`, then reuse the returned `snapshot` and `next_cursor` as `before` for the next page. Ordering/cursors use the latest delivery ID per group, while row status prioritizes failed, processing, pending, then done deliveries. Status filtering applies to this group status. No events are deleted or merged in storage.
 

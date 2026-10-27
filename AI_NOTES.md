@@ -1,162 +1,65 @@
-# AI_NOTES.md — AI-Assisted Development
+# AI-assisted development
 
-## 1. Project Overview
+## Tools and division of work
 
-**Project:** Event-Driven GitHub Automation Bot  
-**Technology Stack:** Angular, NestJS, TypeScript, PostgreSQL, TypeORM, GitHub OAuth, GitHub Webhooks, Slack Incoming Webhooks
+I used ChatGPT and OpenAI Codex to assist with requirement breakdown, implementation, debugging, security review, testing support, and documentation. Exact model/version identifiers were not consistently recorded, so I cannot provide a reliable model history. Project-level AI instructions are documented in [AGENTS.md](AGENTS.md).
 
-This application automates GitHub repository activities using configurable rules. It allows users to sign in with GitHub, connect repositories, process webhook events, perform GitHub actions, send Slack notifications, and monitor activity through a dashboard.
+I directed the Angular/NestJS migration, requested PostgreSQL-backed retry handling and security checks, and tested integrations interactively. AI assisted with implementing modules, TypeORM mappings, Angular views, tests, and verification scripts.
 
-## 2. AI Tools Used
+I reviewed generated changes using application logs, GitHub webhook delivery responses, test results, and manual integration testing before accepting or modifying them. AI assistance was also used when preparing this submission documentation.
 
-I used **ChatGPT and OpenAI Codex** to support the development of this project.
+## Decisions I directed
 
-**ChatGPT helped me with:**
+- **Angular and NestJS migration:** Use standalone Angular features and NestJS domain modules to separate UI, API integration, and backend processing responsibilities.
+- **Durable PostgreSQL processing:** Persist events and action outcomes across application restarts, deduplicate GitHub delivery IDs, and skip already completed actions during retries instead of relying only on an in-memory queue.
+- **Backend event grouping:** Move issue and pull-request event grouping from Angular to the backend and perform pagination there, while retaining individual webhook deliveries and their action history in storage.
 
-- Understanding and breaking down the assignment requirements.
-- Planning the architecture and implementation flow.
-- Understanding GitHub OAuth, webhooks and Slack integration.
-- Troubleshooting development and configuration issues.
-- Planning test scenarios and reviewing technical risks.
+## A specific AI wrong turn and correction
 
-**Codex helped me with:**
+The initial AI-assisted implementation grouped only the deliveries already loaded by the frontend. As a result, grouping depended on the currently fetched page. Deliveries belonging to the same issue or pull request but located on another page could not be represented in the same group.
 
-- Generating and refining Angular and NestJS code.
-- Organizing controllers, services, modules, DTOs and database entities.
-- Implementing event processing and automation rules.
-- Writing unit and integration tests.
-- Reviewing security, retry handling and error management.
-- Improving code quality, documentation and deployment configuration.
+I identified this limitation and questioned whether grouping should instead be handled by the backend. I then explicitly requested backend-side grouping with pagination and error handling.
 
-## 3. Development Approach
+The corrected implementation introduced a NestJS event-history service that determines event groups before applying pagination and exposes separately paginated delivery history. Angular now renders the server-provided results.
 
-I followed an iterative development process.
+Existing grouping scenarios were moved into backend tests, and frontend fixtures were updated accordingly.
 
-First, I understood the core requirements and divided the work into authentication, repository management, webhook processing, automation rules, Slack notifications and dashboard monitoring.
+One verification gap remains: the new PostgreSQL grouping/window queries were inspected using offline TypeORM SQL generation but have not yet been executed against a verified isolated PostgreSQL database. Passing mocked tests does not remove this gap.
 
-I used AI to help implement features and troubleshoot issues, then validated the application through local testing and automated test results.
+## Reliability and verification evidence
 
-The main functionality includes:
+One challenging integration scenario involved GitHub labeling succeeding while the Slack notification failed.
 
-- GitHub OAuth authentication.
-- Repository connection and webhook registration.
-- GitHub issue, pull request and push event processing.
-- Rule-based GitHub actions.
-- Slack notifications.
-- PostgreSQL event and action tracking.
-- Automatic retry handling.
-- Dashboard monitoring and event history.
+Durable action status, exponential backoff, and skipping completed actions allow the failed Slack action to retry without intentionally repeating the successfully completed GitHub action.
 
-## 4. Most Challenging Problem
+A temporary development simulation was used to test a Slack HTTP `503` response followed by a successful `200` response. The temporary runtime test routes and UI were removed afterward.
 
-### Reliable Webhook Processing and Automatic Retry
+Slack Incoming Webhooks cannot provide a strict exactly-once delivery guarantee when failures involve ambiguous network timeouts or process crashes.
 
-One of the most challenging parts was handling webhook events when an external service temporarily fails.
+Previously recorded verification results include:
 
-For example, when a GitHub issue is opened, the application may successfully add a label, but Slack notification delivery can fail.
+- **180 backend tests passed**
+- **32 Angular tests passed**
+- Four PostgreSQL tests were skipped during the general test run.
+- Four PostgreSQL tests passed during an earlier dedicated database run; however, that run does not verify the newer pagination/grouping queries.
+- Application builds and lint checks passed during the recorded feature verification.
+- Local production HTTP checks also passed.
+- Focused feature formatting passed, while separate repository-wide formatting warnings were recorded.
 
-If the entire event is repeated without checking completed actions, the application may perform unnecessary duplicate operations.
+These are historical verification results and were not rerun specifically while preparing this document. See [README.md](README.md#testing) for the relevant commands and testing scope.
 
-### How I Addressed It
+## What I would improve
 
-I implemented a PostgreSQL-backed event-processing approach with:
+The next priorities would be:
 
-- Unique webhook delivery identification.
-- Event and action status tracking.
-- Retry attempt counts.
-- Exponential backoff.
-- Background worker processing.
-- Database locking.
-- Skipping already completed actions.
+- Execute the new grouping and pagination queries against an explicitly verified isolated PostgreSQL environment.
+- Complete live acceptance testing of the deployed version.
+- Resolve remaining development/build dependency advisories.
+- Improve shared rate limiting.
+- Add stronger production monitoring and observability.
 
-### How I Tested It
+An earlier dependency audit recorded **33 development/build findings and zero production advisories**, but this should not be treated as a current audit result.
 
-I tested the retry mechanism using simulated Slack responses:
+Possible future enhancements include a free-tier in-app AI triage feature and GitHub App authentication.
 
-1. The first Slack request returned a simulated HTTP 503 failure.
-2. The event was marked for retry.
-3. The worker automatically retried the failed action.
-4. The second attempt returned a simulated HTTP 200 response.
-5. The event was marked as completed.
-
-The dashboard recorded **two attempts and one retry**, with the final event status as `done`.
-
-The test did not send actual Slack notifications or GitHub requests. The temporary simulation functionality was removed after testing.
-
-This helped me understand retry scheduling, idempotency and reliable event processing.
-
-## 5. Other Challenges
-
-### GitHub OAuth Configuration
-
-Initially, the GitHub OAuth callback configuration did not match the application's registered redirect URL.
-
-I corrected the OAuth callback settings and successfully tested GitHub login.
-
-### GitHub Webhook Registration
-
-During development, GitHub returned HTTP 422 while registering a repository webhook.
-
-I configured a publicly accessible HTTPS endpoint and verified webhook delivery.
-
-### Duplicate Webhook Handling
-
-I tested GitHub webhook redelivery and confirmed that it returned HTTP 202 without creating another dashboard event or Slack notification.
-
-### Database Concurrency
-
-I verified PostgreSQL integration behavior covering worker locking, webhook deduplication, retry recovery and completed-action idempotency.
-
-## 6. Testing and Verification
-
-| Test                         | Result                      |
-| ---------------------------- | --------------------------- |
-| Backend automated tests      | 170 passed                  |
-| Angular automated tests      | 30 passed                   |
-| PostgreSQL integration tests | 4 passed in a dedicated run |
-| Node.js 22 build             | Passed                      |
-| ESLint and formatting        | Passed                      |
-| GitHub OAuth login           | Tested locally              |
-| GitHub issue webhook         | Tested locally              |
-| GitHub pull request webhook  | Tested locally              |
-| GitHub push webhook          | Tested locally              |
-| Automatic GitHub labeling    | Tested locally              |
-| Slack notification           | Tested locally              |
-| Duplicate webhook prevention | Tested locally              |
-| Simulated retry recovery     | Passed                      |
-
-The four PostgreSQL tests passed in an earlier dedicated run and were not repeated in the latest general test execution.
-
-## 7. Security
-
-Security considerations included:
-
-- GitHub OAuth state verification.
-- Secure session handling.
-- CSRF protection.
-- Webhook signature verification.
-- Repository ownership validation.
-- Input validation.
-- Encrypted GitHub token storage.
-- Sensitive information redaction.
-- Rate limiting.
-- PostgreSQL TLS configuration.
-
-## 8. Known Limitations
-
-- Slack Incoming Webhooks cannot guarantee exactly-once delivery in every failure scenario.
-- Rate limiting uses application-local state and may need a shared store when scaling to multiple instances.
-- The full development dependency audit reported 33 findings, while the production dependency audit reported zero advisories.
-- Live production verification is pending for the latest application version.
-
-## 9. What I Learned
-
-This project helped me gain a better understanding of event-driven architecture, GitHub webhooks, OAuth authentication, database-backed background processing, retry mechanisms and external API integrations.
-
-AI accelerated implementation and troubleshooting, but I relied on tests, application logs and integration checks to evaluate the results.
-
-I also learned the importance of understanding AI-generated code, reviewing edge cases and documenting remaining limitations rather than assuming generated solutions are always correct.
-
-### Shared frontend loading feedback
-
-AI assistance added a shared loading service and HTTP interceptor, a top progress bar and a page interaction lock for API requests, navigation and OAuth sign-in. Event and Overview GET requests, including query parameters, bypass both the global progress bar and interaction lock. The UI prevents repeated login/logout clicks and releases request locks on success, errors or cancellation. Browser page restoration clears the OAuth redirect indicator; the long-lived event stream is excluded. Focused tests cover concurrent requests, cancellation, logout/CSRF behavior, navigation and the rendered loading state. No environment variables or backend/database behavior changed.
+No commit, deployment, production database modification, or live environment change is implied by this document.

@@ -9,6 +9,8 @@ An event-driven automation application built with **Angular, NestJS, TypeScript,
 - **Event ingestion:** receive `issues`, `pull_request` and `push` events; verify webhook signatures before processing.
 - **Configurable rules:** match event types and keywords, add GitHub labels where applicable, and notify Slack.
 - **Event dashboard:** see status, filters, action outcomes, errors, attempts and retry history.
+- **Grouped activity:** Event Logs and dashboard Recent Activity combine deliveries for the same repository/issue or pull request into one row, with direct GitHub links. Expand webhook history to inspect each delivery and action; pending/failed deliveries remain visible in the row status. The backend groups before pagination, with 10/25/50 rows per page and separately paginated delivery history. Overview totals still count individual webhook deliveries, and no stored events are removed.
+
 - **Loading feedback:** a top progress bar and interaction lock cover login, logout, navigation and API requests. Concurrent requests keep the page locked until all complete; errors or cancellation release it. Event and Overview GET requests, including filtered event queries, show no global loader and keep automatic refreshes interactive. The long-lived event stream does not hold the lock.
 - **Reliable processing:** persist events in PostgreSQL, deduplicate delivery IDs, process jobs in a background worker and retry transient failures.
 - **Security:** CSRF protection, per-user authorization, request validation, encrypted GitHub tokens and redacted logging.
@@ -29,7 +31,7 @@ PostgreSQL event commit ───> HTTP 202 Accepted
     ▼
 Background worker ────────> Match configured rules
     │                              │
-    │                              ├──> GitHub label/comment action (as supported)
+    │                              ├──> GitHub label action
     │                              └──> Slack incoming webhook
     ▼
 Persistent event/action status ──> Authenticated Angular dashboard
@@ -145,6 +147,32 @@ Event Logs displays action results and final status
 
 Push events can trigger notifications; labeling applies only to supported issue/PR events. Rule behavior depends on the configuration saved in the dashboard.
 
+## Reviewer demo
+
+Source: [GitHub repository](https://github.com/SrihariRamalingam98/github-automation-bot). Deployment: [Render application](https://github-automation-bot-icif.onrender.com/). The latest working-tree changes have not been verified end-to-end on this deployment; its URL does not establish that the deployed version matches this source.
+
+Use your own GitHub account and a disposable repository you own. No shared login credentials are required. Local reviewers must complete the setup above with their own development database, OAuth application and Slack Incoming Webhook. For hosted review, the operator must configure integrations and enable the worker; reviewers need access to the configured Slack channel to verify messages.
+
+1. Sign in and connect your disposable repository under **Repositories**. Ensure it has a `bug` label.
+2. In **Rules**, select the repository, **Issue opened**, keyword `bug`, label `bug`, and enable the rule and Slack notification. Use one matching rule for this walkthrough.
+3. Create a GitHub issue titled `Bug: assessment demo`. Expect the label, a Slack message and completed label/Slack actions in **Event Logs**. Processing is asynchronous; inspect attempts and errors if it remains pending or fails.
+4. Expand webhook history. GitHub can send separate `opened` and `labeled` deliveries, grouped into one issue row. Overview counts individual deliveries. Follow the issue link to open GitHub.
+5. Create a second rule for **Pull request opened**, keyword `assessment`, an existing label and Slack enabled. Open a new PR titled `Assessment demo` from a disposable branch. Expect the recorded PR delivery, label and Slack message. Closing an existing PR does not match this opened-only rule.
+6. In GitHub repository settings, select **Webhooks > Recent Deliveries** and redeliver the original issue-opened delivery. Expect HTTP 202 without another stored copy of that delivery or another label/Slack action for it. Compare delivery IDs in expanded history, not only grouped row counts.
+7. Sign out and confirm the dashboard requires authentication. Never share cookies, tokens or webhook secrets in review evidence.
+
+This walkthrough creates real GitHub, Slack and database activity. Use a disposable repository/channel and retain history for review. Retry recovery has mocked automated coverage; temporary failure-simulation routes/UI are not part of the submitted application. In-app LLM processing and GitHub App authentication are optional stretch goals and are not implemented.
+
+### Server-side event pagination
+
+`GET /api/events` returns `{ items, next_cursor, has_more, snapshot, page_size }`. Pass `limit` (1–50, default 10), optional `repoId`, `type` and `status`, then reuse the returned `snapshot` and `next_cursor` as `before` for the next page. Ordering/cursors use the latest delivery ID per group, while row status prioritizes failed, processing, pending, then done deliveries. Status filtering applies to this group status. No events are deleted or merged in storage.
+
+The frontend renders these server-grouped rows directly and provides Previous/Next and 10/25/50 page sizes. The first page refreshes live; older pages keep the same delivery-ID snapshot boundary so new deliveries do not move existing groups between pages. Worker status changes can still become visible on subsequent requests. Refresh resets the pagination boundary.
+
+Each row initially contains at most 20 deliveries, its total `delivery_count`, and `history_next_cursor`. Load older history with `GET /api/events/:latest_id/deliveries?before=...&snapshot=...&limit=20`; this endpoint uses the same pagination envelope. Both endpoints verify ownership, validate query parameters and use parameterized TypeORM queries in read-only, repeatable-read transactions. Backend try/catch preserves safe database errors and request IDs; frontend errors remain visible and retryable rather than returning fake empty success results.
+
+No database migration or environment variable change is needed. The new PostgreSQL grouping/window queries were inspected through offline TypeORM SQL generation, but were not executed against a database because no verified disposable target was available. Existing tests were retained, with seven grouping cases moved from frontend to backend and API response fixtures updated; no new test cases were added.
+
 ## Testing
 
 Run from the repository root:
@@ -170,8 +198,8 @@ Do not point `TEST_DATABASE_URL` to the production/application database. Databas
 | Check                                 | Recorded result                            |
 | ------------------------------------- | ------------------------------------------ |
 | Node.js 22 build, lint and formatting | Passed                                     |
-| Backend automated tests               | 170 passed in latest reported run          |
-| Angular automated tests               | 30 passed                                  |
+| Backend automated tests               | 180 passed in latest reported run          |
+| Angular automated tests               | 32 passed                                  |
 | PostgreSQL integration tests          | 4 passed in a separate dedicated run       |
 | Production HTTP/asset checks          | Passed locally                             |
 | GitHub issue, PR and push events      | Tested locally                             |
@@ -180,6 +208,8 @@ Do not point `TEST_DATABASE_URL` to the production/application database. Databas
 | Transient Slack failure/recovery      | Passed using simulated 503 → 200 responses |
 
 **Scope:** The four PostgreSQL integration tests were not rerun in the latest general test invocation. Live acceptance of this version on Render remains pending; local tests are not a substitute for production verification.
+
+The grouped-activity feature passed 180 backend and 32 Angular tests, builds, lint and production HTTP checks. Four PostgreSQL tests remain skipped without a verified disposable target. Feature files pass formatting checks; the current repository-wide formatting check reports warnings outside the feature files that were not normalized as part of this change.
 
 ## Deployment on Render
 

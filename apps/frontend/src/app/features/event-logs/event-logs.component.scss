@@ -2,6 +2,19 @@
     display: block;
 }
 
+.subject-link {
+    display: block;
+    margin-block: 6px;
+    max-width: 30rem;
+    overflow-wrap: anywhere;
+}
+
+.delivery-entry {
+    padding-block: 10px;
+    border-bottom: 1px solid #eef0f5;
+    overflow-wrap: anywhere;
+}
+
 summary:focus-visible {
     outline: 3px solid #8d80f5;
     outline-offset: 4px;

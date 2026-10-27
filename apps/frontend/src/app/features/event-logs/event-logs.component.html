@@ -2,7 +2,7 @@
     <div>
         <p class="eyebrow">EVERY EVENT, ACCOUNTED FOR</p>
         <h1>Event logs</h1>
-        <p>Follow deliveries, inspect actions, and understand failures.</p>
+        <p>One row per issue or pull request, with its webhook history and actions.</p>
     </div>
     <button mat-stroked-button (click)="refresh()" [disabled]="loading()">Refresh</button>
 </header>
@@ -39,15 +39,28 @@
             </mat-select>
         </mat-form-field>
     </form>
+    <mat-form-field appearance="outline">
+        <mat-label>Rows per page</mat-label>
+        <mat-select [formControl]="filters.controls.limit">
+            <mat-option [value]="10">10</mat-option>
+            <mat-option [value]="25">25</mat-option>
+            <mat-option [value]="50">50</mat-option>
+        </mat-select>
+    </mat-form-field>
     <app-feedback
         [loading]="loading()"
         [error]="error()"
-        [empty]="!events().length"
+        [empty]="!rows().length"
         title="No matching events"
         description="Try different filters or trigger a new GitHub event."
     />
     <div class="table-wrap">
-        <table mat-table [dataSource]="events()" aria-label="GitHub event history">
+        <table
+            mat-table
+            [dataSource]="rows()"
+            [trackBy]="trackRow"
+            aria-label="GitHub event history"
+        >
             <ng-container matColumnDef="time">
                 <th mat-header-cell *matHeaderCellDef>Received</th>
                 <td mat-cell *matCellDef="let event">
@@ -62,8 +75,27 @@
             <ng-container matColumnDef="repository">
                 <th mat-header-cell *matHeaderCellDef>Repository / Event</th>
                 <td mat-cell *matCellDef="let event">
-                    <strong>{{ event.full_name }}</strong>
-                    <div class="small muted">{{ eventLabel(event) }}</div>
+                    @if (event.repository_url) {
+                        <a
+                            [href]="event.repository_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >{{ event.full_name }}</a
+                        >
+                    } @else {
+                        <strong>{{ event.full_name }}</strong>
+                    }
+                    @if (event.subject_url) {
+                        <a
+                            class="subject-link"
+                            [href]="event.subject_url"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >#{{ event.subject_number }} ·
+                            {{ event.subject_title || 'Open on GitHub' }} ↗</a
+                        >
+                    }
+                    <div class="small muted">{{ event.activity_label }}</div>
                 </td>
             </ng-container>
             <ng-container matColumnDef="status">
@@ -103,15 +135,60 @@
             <ng-container matColumnDef="actions">
                 <th mat-header-cell *matHeaderCellDef>Actions</th>
                 <td mat-cell *matCellDef="let event">
-                    @for (action of event.actions; track action.kind) {
-                        <details>
-                            <summary>{{ action.kind }} &middot; {{ action.status }}</summary>
-                            <p>{{ action.detail }}</p>
-                        </details>
-                    }
-                    @if (!event.actions.length) {
-                        <span class="muted">No actions</span>
-                    }
+                    <details class="delivery-history" [open]="event.deliveries.length === 1">
+                        <summary>Webhook history ({{ event.delivery_count }})</summary>
+                        @for (delivery of event.deliveries; track delivery.id) {
+                            <section
+                                class="delivery-entry"
+                                [attr.aria-label]="eventLabel(delivery)"
+                            >
+                                <strong>{{ eventLabel(delivery) }} · {{ delivery.status }}</strong>
+                                <div class="small muted">
+                                    Delivery {{ delivery.delivery_id }} ·
+                                    {{ delivery.attempts }} attempts
+                                </div>
+                                <div class="small muted">
+                                    {{ delivery.received_at | date: 'MMM d, y, HH:mm:ss' }}
+                                </div>
+                                @if (delivery.error) {
+                                    <p class="error-text">{{ delivery.error }}</p>
+                                }
+                                @if (delivery.status === 'pending' && delivery.next_attempt_at) {
+                                    <div class="small muted">
+                                        Next attempt
+                                        {{ delivery.next_attempt_at | date: 'MMM d, HH:mm:ss' }}
+                                    </div>
+                                }
+                                @for (action of delivery.actions; track action.kind) {
+                                    <details>
+                                        <summary>
+                                            {{ action.kind }} &middot; {{ action.status }}
+                                        </summary>
+                                        <p>{{ action.detail }}</p>
+                                    </details>
+                                }
+                                @if (!delivery.actions.length) {
+                                    <span class="muted">No actions</span>
+                                }
+                            </section>
+                        }
+                        @if (historyErrors()[event.key]) {
+                            <p class="error-text" role="alert">{{ historyErrors()[event.key] }}</p>
+                        }
+                        @if (event.history_next_cursor) {
+                            <button
+                                mat-button
+                                (click)="olderDeliveries(event)"
+                                [disabled]="historyLoading().includes(event.key)"
+                            >
+                                {{
+                                    historyLoading().includes(event.key)
+                                        ? 'Loading deliveries...'
+                                        : 'Load older deliveries'
+                                }}
+                            </button>
+                        }
+                    </details>
                 </td>
             </ng-container>
             <tr mat-header-row *matHeaderRowDef="columns"></tr>
@@ -119,16 +196,14 @@
         </table>
     </div>
     <div class="button-row pagination">
-        <button mat-button (click)="refresh()" [disabled]="!before() || loading()">
-            Newest events
+        <button mat-button (click)="newer()" [disabled]="!previousCursors().length || loading()">
+            Previous
         </button>
-        <span class="small muted">Up to 100 events per page</span>
-        <button
-            mat-stroked-button
-            (click)="older()"
-            [disabled]="events().length < 100 || loading()"
+        <span class="small muted"
+            >Page {{ previousCursors().length + 1 }} · {{ rows().length }} grouped rows</span
         >
-            Older events &rarr;
+        <button mat-stroked-button (click)="older()" [disabled]="!nextCursor() || loading()">
+            Next &rarr;
         </button>
     </div>
 </section>

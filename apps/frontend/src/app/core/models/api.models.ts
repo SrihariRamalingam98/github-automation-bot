@@ -40,6 +40,10 @@ export interface EventAction {
     detail: string | null;
 }
 export interface BotEvent {
+    subject_number?: number | null;
+    subject_title?: string | null;
+    subject_url?: string | null;
+    repository_url?: string;
     id: string;
     repo_id: string;
     delivery_id: string;

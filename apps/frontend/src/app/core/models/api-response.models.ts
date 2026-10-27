@@ -16,4 +16,6 @@ export interface EventFilters {
     type?: string;
     status?: string;
     before?: string;
+    snapshot?: string;
+    limit?: number;
 }

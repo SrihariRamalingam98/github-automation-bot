@@ -2,6 +2,10 @@
     display: block;
 }
 
+.subject-link {
+    overflow-wrap: anywhere;
+}
+
 .stat-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

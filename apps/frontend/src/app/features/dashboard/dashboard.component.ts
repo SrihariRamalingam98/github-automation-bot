@@ -6,6 +6,7 @@ import { MatCardModule } from '@angular/material/card';
 import { RouterLink } from '@angular/router';
 import { catchError, EMPTY, startWith, switchMap, tap } from 'rxjs';
 import { BotEvent, Overview } from '../../core/models/api.models';
+import { EventHistoryRow } from '../../core/models/event-history';
 import { errorMessage } from '../../core/services/feedback.service';
 import { StreamService } from '../../core/services/stream.service';
 import { FeedbackComponent } from '../../shared/components/feedback/feedback.component';
@@ -35,7 +36,7 @@ export class DashboardComponent {
 
     readonly error = signal('');
 
-    readonly events = signal<BotEvent[]>([]);
+    readonly events = signal<EventHistoryRow[]>([]);
 
     readonly overview = signal<Overview>({
         repositories: 0,

@@ -6,8 +6,9 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTableModule } from '@angular/material/table';
-import { catchError, EMPTY, merge, startWith, Subject, switchMap, tap } from 'rxjs';
+import { catchError, EMPTY, finalize, merge, startWith, Subject, switchMap, tap } from 'rxjs';
 import { BotEvent, Repository } from '../../core/models/api.models';
+import { EventHistoryRow } from '../../core/models/event-history';
 import { errorMessage } from '../../core/services/feedback.service';
 import { StreamService } from '../../core/services/stream.service';
 import { FeedbackComponent } from '../../shared/components/feedback/feedback.component';
@@ -46,7 +47,13 @@ export class EventLogsComponent {
 
     readonly repositoryError = signal('');
 
-    readonly events = signal<BotEvent[]>([]);
+    readonly rows = signal<EventHistoryRow[]>([]);
+    readonly trackRow = (_index: number, row: EventHistoryRow) => row.key;
+    readonly snapshot = signal('');
+    readonly nextCursor = signal<string | null>(null);
+    readonly previousCursors = signal<string[]>([]);
+    readonly historyLoading = signal<string[]>([]);
+    readonly historyErrors = signal<Record<string, string>>({});
 
     readonly repos = signal<Repository[]>([]);
 
@@ -60,6 +67,7 @@ export class EventLogsComponent {
         repoId: '',
         type: '',
         status: '',
+        limit: 10,
     });
 
     constructor() {
@@ -68,6 +76,10 @@ export class EventLogsComponent {
             .pipe(
                 tap(() => {
                     this.before.set('');
+                    this.rows.set([]);
+                    this.snapshot.set('');
+                    this.previousCursors.set([]);
+                    this.nextCursor.set(null);
                     this.loading.set(true);
                 }),
                 takeUntilDestroyed(),
@@ -81,14 +93,44 @@ export class EventLogsComponent {
                         .list({
                             ...this.filters.getRawValue(),
                             before: this.before(),
+                            snapshot: this.before() ? this.snapshot() : undefined,
                         })
                         .pipe(
-                            tap((events) => {
-                                this.events.set(events);
+                            tap((page) => {
+                                this.rows.update((current) =>
+                                    page.items.map((row) => {
+                                        const expanded = current.find(
+                                            (previous) =>
+                                                previous.key === row.key &&
+                                                previous.snapshot === row.snapshot,
+                                        );
+                                        if (
+                                            !expanded ||
+                                            expanded.deliveries.length <= row.deliveries.length
+                                        )
+                                            return row;
+                                        const fresh = new Set(
+                                            row.deliveries.map((delivery) => delivery.id),
+                                        );
+                                        return {
+                                            ...row,
+                                            deliveries: [
+                                                ...row.deliveries,
+                                                ...expanded.deliveries.filter(
+                                                    (delivery) => !fresh.has(delivery.id),
+                                                ),
+                                            ],
+                                            history_next_cursor: expanded.history_next_cursor,
+                                        };
+                                    }),
+                                );
+                                this.snapshot.set(page.snapshot || '');
+                                this.nextCursor.set(page.next_cursor);
                                 this.loading.set(false);
                                 this.error.set('');
                             }),
                             catchError((e) => {
+                                this.nextCursor.set(null);
                                 this.loading.set(false);
                                 this.error.set(errorMessage(e));
                                 return EMPTY;
@@ -129,16 +171,71 @@ export class EventLogsComponent {
             this.loadRepositories();
         }
         this.before.set('');
+        this.rows.set([]);
+        this.snapshot.set('');
+        this.previousCursors.set([]);
+        this.nextCursor.set(null);
         this.loading.set(true);
         this.reload.next();
     }
 
     older(): void {
-        const last = this.events().at(-1);
-        if (last) {
-            this.before.set(last.id);
+        const next = this.nextCursor();
+        if (next && !this.loading()) {
+            this.previousCursors.update((cursors) => [...cursors, this.before()]);
+            this.before.set(next);
             this.loading.set(true);
             this.reload.next();
         }
+    }
+
+    newer(): void {
+        if (this.loading() || !this.previousCursors().length) return;
+        const cursors = [...this.previousCursors()];
+        this.before.set(cursors.pop()!);
+        this.previousCursors.set(cursors);
+        this.loading.set(true);
+        this.reload.next();
+    }
+
+    olderDeliveries(row: EventHistoryRow): void {
+        if (!row.history_next_cursor || this.historyLoading().includes(row.key)) return;
+        this.historyLoading.update((keys) => [...keys, row.key]);
+        this.historyErrors.update((errors) => ({ ...errors, [row.key]: '' }));
+        this.api
+            .deliveries(row.latest_id, {
+                before: row.history_next_cursor,
+                snapshot: row.snapshot,
+                limit: 20,
+            })
+            .pipe(
+                finalize(() =>
+                    this.historyLoading.update((keys) => keys.filter((key) => key !== row.key)),
+                ),
+                takeUntilDestroyed(this.destroy),
+            )
+            .subscribe({
+                next: (page) =>
+                    this.rows.update((rows) =>
+                        rows.map((current) => {
+                            if (current.key !== row.key || current.snapshot !== row.snapshot)
+                                return current;
+                            const seen = new Set(current.deliveries.map((delivery) => delivery.id));
+                            return {
+                                ...current,
+                                deliveries: [
+                                    ...current.deliveries,
+                                    ...page.items.filter((delivery) => !seen.has(delivery.id)),
+                                ],
+                                history_next_cursor: page.next_cursor,
+                            };
+                        }),
+                    ),
+                error: (error: unknown) =>
+                    this.historyErrors.update((errors) => ({
+                        ...errors,
+                        [row.key]: errorMessage(error),
+                    })),
+            });
     }
 }

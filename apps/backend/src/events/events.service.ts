@@ -1,3 +1,4 @@
+import { presentEvent } from './event-history';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
@@ -74,6 +75,7 @@ export class EventsService {
                     'event.error',
                     'event.receivedAt',
                     'event.processedAt',
+                    'event.payload',
                 ])
                 .innerJoinAndSelect('event.repository', 'repo')
                 .leftJoinAndSelect('event.actions', 'action')
@@ -92,25 +94,7 @@ export class EventsService {
                 query.andWhere('event.id<:before', { before: filters.before });
             return query.orderBy('event.id', 'DESC').take(100).getMany();
         });
-        return events.map((e) => ({
-            id: e.id,
-            repo_id: e.repoId,
-            delivery_id: e.deliveryId,
-            event_type: e.eventType,
-            action: e.action,
-            status: e.status,
-            attempts: e.attempts,
-            next_attempt_at: e.nextAttemptAt,
-            error: e.error,
-            received_at: e.receivedAt,
-            processed_at: e.processedAt,
-            full_name: e.repository.fullName,
-            actions: e.actions.map((a) => ({
-                kind: a.kind,
-                status: a.status,
-                detail: a.detail,
-            })),
-        }));
+        return events.map(presentEvent);
     }
 
     async overview(userId: string): Promise<Overview> {
